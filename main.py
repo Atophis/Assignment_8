@@ -1,6 +1,6 @@
 import flask
 
-app = flask.Flask(__name__, static_folder="Assets", static_url_path="/Assets")
+app = flask.Flask(__name__, static_folder="Assets", static_url_path="/assets")
 
 @app.route("/", methods=['GET','POST'])
 def start():
