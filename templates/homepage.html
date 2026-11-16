@@ -1,5 +1,115 @@
 {% extends "base.html" %}
-{% block page_title %}TaskJourney | Homepage{% endblock %}
+{% block page_title %}TaskJourney | New Task{% endblock %}
 {% block content %}
+<header class="site-header">
+    <div class="site-brand"><span class="brand-mark" aria-hidden="true"></span>TaskJourney</div>
+</header>
+<main class="task-form">
+    <h1>New task</h1>
 
+    {% if errors %}
+    <div class="form-alert" role="alert">
+        <p>Correct the following fields:</p>
+        <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+    </div>
+    {% elif accepted %}
+    <section class="task-summary" aria-labelledby="submitted-task-heading">
+        <h2 id="submitted-task-heading">Submitted task</h2>
+        <dl>
+            <dt>Title</dt>
+            <dd>{{ form.get('title') }}</dd>
+            <dt>Description</dt>
+            <dd class="task-description">{{ form.get('description') }}</dd>
+            <dt>Due date and time</dt>
+            <dd><time datetime="{{ form.get('due') }}">{{ form.get('due') | replace('T', ' ') }}</time></dd>
+            <dt>Planned work dates and times</dt>
+            <dd>
+                <ol>
+                    {% for value in planned_times %}
+                    <li><time datetime="{{ value }}">{{ value | replace('T', ' ') }}</time></li>
+                    {% endfor %}
+                </ol>
+            </dd>
+            <dt>Notification preference</dt>
+            <dd>{{ form.get('notification') | capitalize }}</dd>
+        </dl>
+    </section>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('insert') }}">
+        <input type="hidden" name="timezone" id="timezone" value="{{ form.get('timezone', 'UTC') }}">
+
+        <label for="title">Task title</label>
+        <input id="title" name="title" required value="{{ form.get('title', '') }}">
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" required>{{ form.get('description', '') }}</textarea>
+
+        <div class="task-options">
+            <div>
+                <label for="due">Due date and time</label>
+                <input type="datetime-local" id="due" name="due" required aria-describedby="due-help"
+                       value="{{ form.get('due', '') }}">
+                <small id="due-help">Choose a date after today.</small>
+            </div>
+            <div>
+                <label for="notification">Notification preference</label>
+                <select id="notification" name="notification" required>
+                    {% for value, label in [('none', 'None'), ('email', 'Email'), ('device', 'Device')] %}
+                    <option value="{{ value }}" {% if form.get('notification', 'none') == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <fieldset id="work-sessions">
+            <legend>Planned work dates and times</legend>
+            {% for value in planned_times %}
+            <label for="planned-{{ loop.index }}">Work session {{ loop.index }}</label>
+            <input type="datetime-local" id="planned-{{ loop.index }}" name="planned_time"
+                   required value="{{ value }}">
+            {% endfor %}
+        </fieldset>
+        <div class="session-actions">
+            <button type="button" id="add-session">Add work session</button>
+            <button type="button" id="remove-session" {% if planned_times|length == 1 %}disabled{% endif %}>
+                Remove last work session
+            </button>
+        </div>
+
+        <div class="form-footer">
+            <button type="submit">Submit task</button>
+        </div>
+    </form>
+</main>
+<script>
+    document.getElementById("timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+    const sessions = document.getElementById("work-sessions");
+    const removeSession = document.getElementById("remove-session");
+    const sessionCount = () => sessions.querySelectorAll("input").length;
+
+    document.getElementById("add-session").addEventListener("click", () => {
+        const number = sessionCount() + 1;
+        const label = document.createElement("label");
+        const input = document.createElement("input");
+        input.type = "datetime-local";
+        input.id = "planned-" + number;
+        input.name = "planned_time";
+        input.required = true;
+        label.htmlFor = input.id;
+        label.textContent = "Work session " + number;
+        sessions.append(label, input);
+        removeSession.disabled = false;
+        input.focus();
+    });
+
+    removeSession.addEventListener("click", () => {
+        sessions.lastElementChild.remove();
+        sessions.lastElementChild.remove();
+        removeSession.disabled = sessionCount() === 1;
+    });
+</script>
 {% endblock %}
